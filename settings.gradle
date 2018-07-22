@@ -1,0 +1,17 @@
+rootProject.name = 'kotlin-js-react.root'
+include ':kotlin-js-react.backend'
+project(':kotlin-js-react.backend').projectDir = "$rootDir/backend" as File
+
+include ':kotlin-js-react.front'
+project(':kotlin-js-react.front').projectDir = "$rootDir/front" as File
+
+include ':kotlin-js-react.common.js'
+project(':kotlin-js-react.common.js').projectDir = "$rootDir/common/js" as File
+
+include ':kotlin-js-react.common.jvm'
+project(':kotlin-js-react.common.jvm').projectDir = "$rootDir/common/jvm" as File
+
+include ':kotlin-js-react.common.kotlin'
+project(':kotlin-js-react.common.kotlin').projectDir = "$rootDir/common/kotlin" as File
+
+

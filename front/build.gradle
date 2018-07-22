@@ -1,0 +1,78 @@
+buildscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath "com.moowork.gradle:gradle-node-plugin:1.2.0"
+    }
+}
+
+apply plugin: "kotlin2js"
+apply plugin: "kotlin-dce-js"
+apply plugin: "com.moowork.node"
+
+node {
+    download = true
+}
+
+repositories {
+    maven { url "https://kotlin.bintray.com/kotlin-js-wrappers" }
+}
+
+dependencies {
+    compile project(':kotlin-js-react.common.js')
+    compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlinVersion"
+    compile "org.jetbrains:kotlin-react:$kotlinReactVersion"
+    compile "org.jetbrains:kotlin-react-dom:$kotlinReactVersion"
+    compile "org.jetbrains.kotlinx:kotlinx-coroutines-core-js:$kotlinCoroutinesVersion"
+}
+
+kotlin {
+    experimental {
+        coroutines 'enable'
+    }
+}
+
+[compileKotlin2Js, compileTestKotlin2Js]*.configure {
+    kotlinOptions {
+        sourceMap = true
+        sourceMapEmbedSources = "always"
+        moduleKind = 'commonjs'
+        metaInfo = false
+    }
+}
+
+task prepareWeb(type: Copy, dependsOn: npmInstall) {
+    from "$projectDir/src/web"
+    from ("$projectDir/node_modules/font-awesome/css") {
+        include "font-awesome.min.css"
+        into "style"
+    }
+    from ("$projectDir/node_modules/font-awesome") {
+        include "fonts/*"
+    }
+    from ("$projectDir/node_modules/primereact/resources") {
+        include "primereact.min.css"
+        into "style"
+    }
+    from ("$projectDir/node_modules/primereact/resources/themes/omega") {
+        include "theme.css"
+        include "fonts/*"
+        into "style"
+    }
+    into "$buildDir/web"
+}
+
+build.dependsOn prepareWeb
+
+task devBuild(dependsOn: [npmInstall, runDceKotlinJs, prepareWeb])
+
+task devServer(type: NpmTask, dependsOn: [npmInstall]) {
+    group = 'Application'
+    args = ["run", "kotlinServer"]
+}
+
+task devJavascriptServer(type: NpmTask, dependsOn: [npmInstall]) {
+    group = 'Application'
+    args = ["run", "devJavasriptServer"]
+}
