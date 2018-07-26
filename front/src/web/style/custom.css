@@ -1,0 +1,14 @@
+.wrapper {
+    margin: 0 100px;
+}
+
+.header {
+    height: 100px;
+    background: lightgray;
+}
+
+.content {
+    padding: 50px;
+    height: 100%;
+    background: lightslategrey;
+}

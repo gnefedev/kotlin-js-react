@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Repository
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.*
@@ -55,21 +57,29 @@ class CarsController(
         )
     )
 
+    @PostMapping("/add/car")
+    fun addCar(@RequestBody carJson: String) {
+        carsRepository.addCar(serializer.parse(carJson))
+    }
 }
 
 @Repository
 class CarsRepository {
-    private val cars: List<Car>
+    private var cars: List<Car> = emptyList()
 
     fun allBrands() = cars.map { it.brand }.distinct()
     fun allColors() = cars.map { it.color }.distinct()
 
+    fun addCar(car: Car) {
+        cars += car
+    }
+
     fun getCars(color: String?, brand: String?): List<Car> {
         var result = cars
-        if (color != null) {
+        if (!color.isNullOrBlank()) {
             result = result.filter { it.color == color }
         }
-        if (brand != null) {
+        if (!brand.isNullOrBlank()) {
             result = result.filter { it.brand == brand }
         }
         return result

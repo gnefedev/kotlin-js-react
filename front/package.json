@@ -3,7 +3,8 @@
     "react": "15.6.1",
     "react-dom": "15.6.1",
     "react-router-dom": "4.2.2",
-    "primereact": "1.4.0"
+    "primereact": "1.4.0",
+    "classnames": "^2.2.5"
   },
   "devDependencies": {
     "webpack-dev-server": "2.8.2",
@@ -12,7 +13,7 @@
     "webpack-merge": "4.1.0",
     "webpack": "3.4.1",
 
-    //not need for kotlin start
+
     "babel-core": "^6.24.0",
     "babel-loader": "^6.4.1",
     "babel-polyfill": "^6.23.0",
@@ -21,7 +22,6 @@
     "babel-preset-react": "^6.23.0",
     "babel-preset-stage-2": "^6.22.0",
     "babel-preset-stage-3": "^6.22.0"
-    //not need for kotlin end
   },
   "scripts": {
     "devJavasriptServer": "webpack-dev-server --open --config webpack.javascript.js",
@@ -29,7 +29,8 @@
     "gradleBuild": "../gradlew devBuild --continuous --parallel",
     "kotlinServer": "run-p gradleBuild devKotlinServer"
   },
-  //not need for kotlin start
+
+
   "babel": {
     "presets": [
       "react",
@@ -45,5 +46,4 @@
       ]
     ]
   }
-  //not need for kotlin end
 }
