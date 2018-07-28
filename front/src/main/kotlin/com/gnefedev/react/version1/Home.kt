@@ -65,12 +65,12 @@ class Home(props: LocationProps) : RComponent<LocationProps, State>(props) {
             }
         }
         launch {
-            loadData(state.brand, state.color)
-
             updateState {
                 brands = fetchJson("/api/brands", StringSerializer.list)
                 colors = fetchJson("/api/colors", StringSerializer.list)
             }
+
+            loadData(state.brand, state.color)
         }
     }
 

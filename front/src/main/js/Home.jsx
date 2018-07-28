@@ -44,12 +44,11 @@ class Home extends React.Component {
             });
             this.loadData(query["brand"], query["color"])
         });
-        await this.loadData(this.state.brand, this.state.color);
-
         this.setState({
             colors: await (await fetch('/api/colors')).json(),
             brands: await (await fetch('/api/brands')).json()
         });
+        await this.loadData(this.state.brand, this.state.color);
     }
 
     async loadData(brand, color) {
