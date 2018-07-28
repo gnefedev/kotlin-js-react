@@ -3,8 +3,8 @@
 }
 
 .header {
-    height: 100px;
     background: lightgray;
+    padding: 50px;
 }
 
 .content {

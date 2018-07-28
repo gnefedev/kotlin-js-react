@@ -1,8 +1,23 @@
-var merge = require("webpack-merge");
+var webpack = require("webpack");
 var path = require("path");
 
-module.exports = merge(require("./webpack.common.js"), {
+module.exports = {
     entry: path.resolve(__dirname, "src/main/index.javascript.js"),
+    output: {
+        path: path.resolve(__dirname, "build"),
+        filename: "bundle.js"
+    },
+    resolve: {
+        modules: [
+            path.resolve(__dirname, "node_modules"),
+            path.resolve(__dirname, "src/main/js/")
+        ],
+        extensions: ['.js', '.jsx']
+    },
+    devtool: "inline-source-map",
+    plugins: [
+        new webpack.HotModuleReplacementPlugin()
+    ],
     devServer: {
         contentBase: "./build/web/",
         port: 9001,
@@ -17,5 +32,14 @@ module.exports = merge(require("./webpack.common.js"), {
                 ws: true
             }
         ]
+    },
+    module: {
+        loaders: [
+            {
+                test: /\.jsx?$/,
+                exclude: /node_modules/,
+                loader: 'babel-loader',
+            }
+        ]
     }
-});
+};
