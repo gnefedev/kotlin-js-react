@@ -5,25 +5,27 @@ import com.gnefedev.react.bridge.SelectItem
 import com.gnefedev.react.bridge.column
 import com.gnefedev.react.bridge.datatable
 import com.gnefedev.react.bridge.dropdown
-import com.gnefedev.react.fetchJson
-import com.gnefedev.react.updateState
 import com.gnefedev.react.version1.Home.State
+import kotlinext.js.clone
 import kotlinext.js.js
+import kotlinx.coroutines.experimental.await
 import kotlinx.coroutines.experimental.launch
 import kotlinx.html.style
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.internal.StringSerializer
+import kotlinx.serialization.json.JSON
 import kotlinx.serialization.list
 import kotlinx.serialization.serializer
-import react.RBuilder
-import react.RComponent
-import react.RProps
-import react.RState
+import react.*
 import react.dom.div
 import react.dom.span
+import kotlin.browser.window
 
-class Home(props: LocationProps)
-  : RComponent
-<LocationProps, State>(props) {
+class Home(
+  props: LocationProps
+) : RComponent
+<LocationProps, State>
+(props) {
   init {
     state = State(
       loaded = false,
@@ -131,10 +133,15 @@ class Home(props: LocationProps)
     var color: String?,
     var brand: String?
   ) : RState {
+
 lateinit var cars: List<Car>
 lateinit var brands: List<String>
 lateinit var colors: List<String>
   }
+
+
+
+
 
 }
 
@@ -306,3 +313,28 @@ external interface RHistory {
     listener: (RLocation) -> Unit
   )
 }
+
+private val serializer: JSON
+  = JSON()
+
+suspend fun <T> fetchJson(
+  url: String,
+  kSerializer: KSerializer<T>
+): T {
+  val json = window.fetch(url)
+    .await().text().await()
+  return serializer.parse(
+    kSerializer,
+    json
+  )
+}
+
+inline fun <S : RState>
+  Component<*, S>.updateState(
+  action: S.() -> Unit
+) {
+  setState(
+    clone(state).apply(action)
+  )
+}
+

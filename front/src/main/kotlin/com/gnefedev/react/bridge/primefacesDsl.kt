@@ -1,6 +1,6 @@
 package com.gnefedev.react.bridge
 
-import com.gnefedev.react.ReactProperty
+import com.gnefedev.react.RProperty
 import com.gnefedev.react.primefaces.Column
 import com.gnefedev.react.primefaces.ColumnProps
 import com.gnefedev.react.primefaces.DataTable
@@ -54,9 +54,9 @@ fun <T> RBuilder.dropdown(
 }
 
 fun <T> RBuilder.dropdown(
-    selected: ReactProperty<T>,
-    options: List<SelectItem<T>>,
-    handler: RElementBuilder<DropdownProps>.() -> Unit
+  selected: RProperty<T>,
+  options: List<SelectItem<T>>,
+  handler: RElementBuilder<DropdownProps>.() -> Unit
 ) = child(Dropdown::class) {
     attrs.options = options.toTypedArray()
     attrs.onChange = {

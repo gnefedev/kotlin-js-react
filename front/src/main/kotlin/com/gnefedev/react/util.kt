@@ -19,9 +19,11 @@ inline fun <S : RState> Component<*, S>.updateState(action: S.() -> Unit) {
     setState(clone(state).apply(action))
 }
 
-class ReactProperty<T>(
+class RProperty<T>(
     val value: T,
     val onChange: (T) -> Unit
 )
 
-infix fun <T> T.onChange(onChange: (T) -> Unit): ReactProperty<T> = ReactProperty(this, onChange)
+infix fun <T> T.onChange(
+  onChange: (T) -> Unit
+): RProperty<T> = RProperty(this, onChange)

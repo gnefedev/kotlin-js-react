@@ -1,7 +1,7 @@
 package com.gnefedev.react.version5
 
 import com.gnefedev.common.Car
-import com.gnefedev.react.ReactProperty
+import com.gnefedev.react.RProperty
 import com.gnefedev.react.bridge.SelectItem
 import com.gnefedev.react.bridge.column
 import com.gnefedev.react.bridge.datatable
@@ -24,166 +24,203 @@ import react.RState
 import react.dom.div
 import react.dom.span
 
-class Home(props: LocationProps<Query>) : LayoutComponent<LocationProps<Query>, State>(props), LoadData<State> {
-    init {
-        state = State(
-            color = props.location.query.color,
-            brand = props.location.query.brand
-        )
+class Home(
+  props: LocationProps<Query>
+) : LayoutComponent
+<LocationProps<Query>, State>
+(props), LoadData<State> {
+  init {
+    state = State(
+      color = props.location.query.color,
+      brand = props.location.query.brand
+    )
+  }
+
+  override fun RBuilder.renderHeader() {
+    if (!state.loaded) return
+    homeHeader(
+      brands = state.brands,
+      brand = state.brand onChange { navigateToChanged(brand = it) },
+      colors = state.colors,
+      color = state.color onChange { navigateToChanged(color = it) }
+    )
+  }
+
+  override fun RBuilder.renderContent() {
+    if (!state.loaded) return
+    homeContent(cars = state.cars)
+  }
+
+  private fun navigateToChanged(brand: String? = state.brand, color: String? = state.color) {
+    props.history.push("?brand=" + (brand ?: "") + "&color=" + (color ?: ""))
+  }
+
+  override fun componentDidMount()
+  {
+    props.history.listen {
+      location ->
+      updateStateAndLoadData {
+    brand = location.query.brand
+    color = location.query.color
+      }
+
+
+
+
+
+
     }
 
-    override fun RBuilder.renderHeader() {
-        if (!state.loaded) return
-        homeHeader(
-            brands = state.brands,
-            brand = state.brand onChange { navigateToChanged(brand = it) },
-            colors = state.colors,
-            color = state.color onChange { navigateToChanged(color = it) }
-        )
+    updateStateAndLoadData {
+      brands = fetchJson(
+        "/api/brands",
+        StringSerializer.list
+      )
+      colors = fetchJson(
+        "/api/colors",
+        StringSerializer.list
+      )
     }
 
-    override fun RBuilder.renderContent() {
-        if (!state.loaded) return
-        homeContent(cars = state.cars)
-    }
 
-    private fun navigateToChanged(brand: String? = state.brand, color: String? = state.color) {
-        props.history.push("?brand=" + (brand ?: "") + "&color=" + (color ?: ""))
-    }
 
-    override fun componentDidMount() {
-        props.history.listen { location ->
-            updateStateAndLoadData {
-                brand = location.query.brand
-                color = location.query.color
-            }
-        }
-        updateStateAndLoadData {
-            brands = fetchJson("/api/brands", StringSerializer.list)
-            colors = fetchJson("/api/colors", StringSerializer.list)
-        }
-    }
 
-    override suspend fun State.loadData() {
-        val url = "/api/cars?brand=" + (brand ?: "") + "&color=" + (color ?: "")
-        cars = fetchJson(url, Car::class.serializer().list)
-        loaded = true
-    }
 
-    class State(
-        var color: String?,
-        var brand: String?
-    ) : RState {
-        var loaded: Boolean = false
-        lateinit var cars: List<Car>
-        lateinit var brands: List<String>
-        lateinit var colors: List<String>
-    }
 
-    interface Query {
-        var color: String?
-        var brand: String?
-    }
+  }
+
+  override suspend fun State
+    .loadData() {
+
+
+    val url = "/api/cars" +
+      "?brand=" + (brand ?: "") +
+      "&color=" + (color ?: "")
+
+    cars = fetchJson(
+      url,
+      Car::class.serializer().list
+    )
+    loaded = true
+
+  }
+
+  class State(
+    var color: String?,
+    var brand: String?
+  ) : RState {
+    var loaded: Boolean = false
+    lateinit var cars: List<Car>
+    lateinit var brands: List<String>
+    lateinit var colors: List<String>
+  }
+
+  interface Query {
+    var color: String?
+    var brand: String?
+  }
 }
 
 //render part
 private fun RBuilder.homeHeader(
-    brands: List<String>,
-    brand: ReactProperty<String?>,
-    colors: List<String>,
-    color: ReactProperty<String?>
+  brands: List<String>,
+  brand: RProperty<String?>,
+  colors: List<String>,
+  color: RProperty<String?>
 ) {
-    +"Brand:"
-    dropdown(
-        selected = brand,
-        options = brands.map { SelectItem(label = it, value = it) }.withDefault("all")
-    ) {}
-    +"Color:"
-    dropdown(
-        selected = color,
-        options = colors.map { SelectItem(label = it, value = it) }.withDefault("all")
-    ) {}
+  +"Brand:"
+  dropdown(
+    selected = brand,
+    options = brands.map { SelectItem(label = it, value = it) }.withDefault("all")
+  ) {}
+  +"Color:"
+  dropdown(
+    selected = color,
+    options = colors.map { SelectItem(label = it, value = it) }.withDefault("all")
+  ) {}
 }
 
 private fun RBuilder.homeContent(cars: List<Car>) {
-    datatable(cars) {
-        column(header = "Brand") {
-            +it.brand
-        }
-        column(header = "Color") {
-            span {
-                attrs.style = js { color = it.color }
-                +it.color
-            }
-        }
-        column(header = "Year") {
-            +"${it.year}"
-        }
+  datatable(cars) {
+    column(header = "Brand") {
+      +it.brand
     }
+    column(header = "Color") {
+      span {
+        attrs.style = js { color = it.color }
+        +it.color
+      }
+    }
+    column(header = "Year") {
+      +"${it.year}"
+    }
+  }
 }
 
 //Layout
 abstract class LayoutComponent<P : RProps, S : RState> : RComponent<P, S> {
-    constructor() : super()
-    constructor(props: P) : super(props)
+  constructor() : super()
+  constructor(props: P) : super(props)
 
-    final override fun RBuilder.render() {
-        div(classes = "wrapper") {
-            div(classes = "header") {
-                renderHeader()
-            }
-            div(classes = "content") {
-                renderContent()
-            }
-        }
+  final override fun RBuilder.render() {
+    div(classes = "wrapper") {
+      div(classes = "header") {
+        renderHeader()
+      }
+      div(classes = "content") {
+        renderContent()
+      }
     }
+  }
 
-    open fun RBuilder.renderHeader() {}
+  open fun RBuilder.renderHeader() {}
 
-    abstract fun RBuilder.renderContent()
+  abstract fun RBuilder.renderContent()
 }
 
 //infrastructure
 external interface LocationProps<T> : RProps {
-    var location: RLocation<T>
+  var location: RLocation<T>
 }
 
 external interface RLocation<T> {
-    var search: String?
+  var search: String?
 }
 
 val <T> LocationProps<T>.history: RHistory<T> get() = this.asDynamic().history.unsafeCast<RHistory<T>>()
 
 external interface RHistory<T> {
-    fun push(path: String, state: Any? = definedExternally)
-    fun listen(listener: (RLocation<T>) -> Unit)
+  fun push(path: String, state: Any? = definedExternally)
+  fun listen(listener: (RLocation<T>) -> Unit)
 }
 
 val <T> RLocation<T>.query: T
-    get() {
-        val result = js("{}")
-        val queryString = search?.substring(1)
-        if (queryString != null && !queryString.isBlank()) {
-            queryString.split("&")
-                .map { it.split("=") }
-                .forEach { result[it[0]] = it[1] }
-        }
-        return result.unsafeCast<T>()
+  get() {
+    val result = js("{}")
+    val queryString = search?.substring(1)
+    if (queryString != null && !queryString.isBlank()) {
+      queryString.split("&")
+        .map { it.split("=") }
+        .forEach { result[it[0]] = it[1] }
     }
+    return result.unsafeCast<T>()
+  }
 
 infix fun <T : Any> List<SelectItem<T>>.withDefault(label: String) =
-    listOf(SelectItem(label = label, value = null)) + this
+  listOf(SelectItem(label = label, value = null)) + this
 
 
 interface LoadData<S : RState> {
-    suspend fun S.loadData()
+  suspend fun S.loadData()
 }
 
-fun <C, S : RState> C.updateStateAndLoadData(action: suspend S.() -> Unit) where C : react.Component<*, S>, C: LoadData<S> {
-    launch {
-        val newState = clone(state)
-        action(newState)
-        newState.loadData()
-        setState(newState)
-    }
+fun <C, S : RState> C.updateStateAndLoadData(
+  action: suspend S.() -> Unit
+) where C : react.Component<*, S>, C : LoadData<S> {
+  launch {
+    val newState = clone(state)
+    action(newState)
+    newState.loadData()
+    setState(newState)
+  }
 }
