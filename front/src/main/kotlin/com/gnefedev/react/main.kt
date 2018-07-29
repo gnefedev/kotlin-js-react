@@ -14,6 +14,7 @@ fun main(args: Array<String>) {
                 switch {
                     route("/version1", component = com.gnefedev.react.version1.Home::class, exact = true)
                     route("/version2", component = com.gnefedev.react.version2.Home::class, exact = true)
+                    route("/version2a", component = com.gnefedev.react.version2a.Home::class, exact = true)
                     route("/version3", component = com.gnefedev.react.version3.Home::class, exact = true)
                     route("/version3a", component = com.gnefedev.react.version3a.Home::class, exact = true)
                     route("/version4", component = com.gnefedev.react.version4.Home::class, exact = true)
