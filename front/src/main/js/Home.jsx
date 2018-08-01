@@ -1,10 +1,20 @@
-import React, {PropTypes} from 'react';
+// @flow
+import React from 'react';
 import {DataTable} from "primereact/components/datatable/DataTable";
 import {Column} from "primereact/components/column/Column";
 import {Dropdown} from "primereact/components/dropdown/Dropdown";
+import type { ContextRouter } from 'react-router';
+
+type Car = {
+  brand: string,
+  color: string,
+  year: number
+}
 
 class Home
-  extends React.Component {
+  extends React.Component
+    <ContextRouter, State>{
+
 
 
   state = {
@@ -14,8 +24,12 @@ class Home
     )["color"],
     brand: searchAsMap(
       this.props.location.search
-    )["brand"]
+    )["brand"],
+    cars: [],
+    brands: [],
+    colors: []
   };
+
 
 
   render() {
@@ -28,13 +42,15 @@ class Home
     brands={this.state.brands}
     brand={this.state.brand}
     onBrandChange={brand =>
-  this.navigateToChanged({brand})
-    }
+  this.navigateToChanged(
+    brand, this.state.color
+  )}
     colors={this.state.colors}
     color={this.state.color}
     onColorChange={color =>
-  this.navigateToChanged({color})
-    }
+  this.navigateToChanged(
+    this.state.brand, color
+    )}
           />
         </Header>
         <Content>
@@ -46,10 +62,10 @@ class Home
     );
   }
 
-  navigateToChanged({
-    brand = this.state.brand,
-    color = this.state.color
-  }) {
+  navigateToChanged(
+    brand?: string,
+    color?: string
+  ) {
     this.props.history.push(
 "?brand=" + (brand?brand:"")
 + "&color=" + (color?color:""))
@@ -93,8 +109,8 @@ class Home
 
 
   async loadData(
-    brand,
-    color
+    brand?: string,
+    color?: string
   ) {
     let url = '/api/cars?' +
 'brand=' + (brand?brand:"") +
@@ -107,51 +123,50 @@ class Home
       loaded: true
     });
   }
-
-
-
-
-
-
-
-
-
-
-
 }
+
+type State = {
+  color?: string,
+  brand?: string,
+
+  loaded: boolean,
+  cars: Array<Car>,
+  brands: Array<string>,
+  colors: Array<string>
+};
 
 export default Home;
 
 //render part
-const HomeHeader = ({
-brands,
-brand,
-onBrandChange,
-colors,
-color,
-onColorChange
+const HomeHeader = (props: {
+brands: Array<string>,
+brand?: string,
+onBrandChange: (string) => void,
+colors: Array<string>,
+color?: string,
+onColorChange: (string) => void
 }) => (
   <div>
     Brand:
     <Dropdown
-      value={brand}
+      value={props.brand}
       onChange={e =>
-        onBrandChange(e.value)
+    props.onBrandChange(e.value)
       }
       options={withDefault("all",
-    brands.map(value => ({
+    props.brands.map(value => ({
       label: value, value: value
     })))}
 
     />
     Color:
     <Dropdown
-      value={color}
+      value={props.color}
       onChange={e =>
-        onColorChange(e.value)
+    props.onColorChange(e.value)
       }
       options={withDefault("all",
-    colors.map(value => ({
+    props.colors.map(value => ({
       label: value, value: value
     })))}
 
@@ -159,23 +174,10 @@ onColorChange
   </div>
 );
 
-HomeHeader.propTypes = {
-  brands: PropTypes
-    .array.isRequired,
-  brand: PropTypes.string,
-  onBrandChange: PropTypes
-    .func.isRequired,
-  colors: PropTypes
-    .array.isRequired,
-  color: PropTypes.string,
-  onColorChange: PropTypes
-    .func.isRequired
-};
-
-const HomeContent = ({
- cars
+const HomeContent = (props: {
+   cars: Array<Car>
 }) => (
-  <DataTable value={cars}>
+  <DataTable value={props.cars}>
     <Column header="Brand"
             body={rowData =>
       rowData["brand"]
@@ -196,49 +198,30 @@ const HomeContent = ({
   </DataTable>
 );
 
-HomeContent.propTypes = {
-  cars: PropTypes
-    .array.isRequired,
-};
-
 //Layout
-const Layout = ({
-  children
+const Layout = (props: {
+    children: any
 }) => (
   <div className={"wrapper"}>
-    {children}
+    {props.children}
   </div>
 );
 
-Layout.propTypes = {
-  children: PropTypes
-    .any.isRequired
-};
-
-const Header = ({
-  children
+const Header = (props: {
+    children?: any
 }) => (
   <div className={"header"}>
-    {children}
+    {props.children}
   </div>
 );
 
-Header.propTypes = {
-  children: PropTypes.object
-};
-
-const Content = ({
- children
+const Content = (props: {
+   children: any
 }) => (
   <div className={"content"}>
-    {children}
+    {props.children}
   </div>
 );
-
-Content.propTypes = {
-  children: PropTypes
-    .object.isRequired
-};
 
 //infrastructure
 function searchAsMap(search) {

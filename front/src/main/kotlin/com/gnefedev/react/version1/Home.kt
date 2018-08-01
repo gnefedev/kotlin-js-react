@@ -5,7 +5,6 @@ import com.gnefedev.react.bridge.SelectItem
 import com.gnefedev.react.bridge.column
 import com.gnefedev.react.bridge.datatable
 import com.gnefedev.react.bridge.dropdown
-import com.gnefedev.react.version1.Home.State
 import kotlinext.js.clone
 import kotlinext.js.js
 import kotlinx.coroutines.experimental.await
@@ -28,19 +27,23 @@ class Home(
 (props) {
   init {
     state = State(
-      loaded = false,
+
       color = searchAsMap(
         props.location.search
       )["color"],
       brand = searchAsMap(
         props.location.search
       )["brand"]
+
+
+
     )
   }
 
   override fun
     RBuilder.render() {
     if (!state.loaded) return
+
 
     layout {
       header {
@@ -50,11 +53,13 @@ class Home(
           onBrandChange = {
   navigateToChanged(brand = it)
           },
+
           colors = state.colors,
           color = state.color,
           onColorChange = {
   navigateToChanged(color = it)
           }
+
         )
       }
       content {
@@ -127,22 +132,16 @@ class Home(
       loaded = true
     }
   }
+}
 
-  class State(
-    var loaded: Boolean,
-    var color: String?,
-    var brand: String?
-  ) : RState {
-
+class State(
+  var color: String?,
+  var brand: String?
+) : RState {
+var loaded: Boolean = false
 lateinit var cars: List<Car>
 lateinit var brands: List<String>
 lateinit var colors: List<String>
-  }
-
-
-
-
-
 }
 
 
@@ -184,19 +183,6 @@ onColorChange: (String?) -> Unit
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 private fun RBuilder.homeContent(
   cars: List<Car>
 ) {
@@ -221,11 +207,6 @@ private fun RBuilder.homeContent(
   }
 }
 
-
-
-
-
-
 //Layout
 private fun RBuilder.layout(
   children: RBuilder.() -> Unit
@@ -235,11 +216,6 @@ private fun RBuilder.layout(
   }
 }
 
-
-
-
-
-
 private fun RBuilder.header(
   children: RBuilder.() -> Unit
 ) {
@@ -248,10 +224,6 @@ private fun RBuilder.header(
   }
 }
 
-
-
-
-
 private fun RBuilder.content(
   children: RBuilder.() -> Unit
 ) {
@@ -259,11 +231,6 @@ private fun RBuilder.content(
     children()
   }
 }
-
-
-
-
-
 
 //infrastructure
 fun searchAsMap(search: String?) =
