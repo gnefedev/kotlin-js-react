@@ -11,6 +11,11 @@ type Car = {
   year: number
 }
 
+type NavigateToChanged = {
+  brand?: string,
+  color?: string
+}
+
 class Home
   extends React.Component
     <ContextRouter, State>{
@@ -42,15 +47,15 @@ class Home
     brands={this.state.brands}
     brand={this.state.brand}
     onBrandChange={brand =>
-  this.navigateToChanged(
-    brand, this.state.color
-  )}
+  this.navigateToChanged({
+    brand
+  })}
     colors={this.state.colors}
     color={this.state.color}
     onColorChange={color =>
-  this.navigateToChanged(
-    this.state.brand, color
-    )}
+  this.navigateToChanged({
+    color
+  })}
           />
         </Header>
         <Content>
@@ -62,10 +67,10 @@ class Home
     );
   }
 
-  navigateToChanged(
-    brand?: string,
-    color?: string
-  ) {
+  navigateToChanged({
+    brand = this.state.brand,
+    color = this.state.color
+  }: Object) {
     this.props.history.push(
 "?brand=" + (brand?brand:"")
 + "&color=" + (color?color:""))
@@ -137,36 +142,45 @@ type State = {
 
 export default Home;
 
-//render part
-const HomeHeader = (props: {
+type HomeHeaderProps = {
 brands: Array<string>,
 brand?: string,
 onBrandChange: (string) => void,
 colors: Array<string>,
 color?: string,
 onColorChange: (string) => void
-}) => (
+}
+
+//render part
+const HomeHeader = ({
+brands,
+brand,
+onBrandChange,
+colors,
+color,
+onColorChange
+}: HomeHeaderProps) => (
   <div>
     Brand:
     <Dropdown
-      value={props.brand}
+      value={brand}
       onChange={e =>
-    props.onBrandChange(e.value)
+        onBrandChange(e.value)
       }
       options={withDefault("all",
-    props.brands.map(value => ({
+        brands.map(value => ({
       label: value, value: value
     })))}
 
     />
     Color:
     <Dropdown
-      value={props.color}
+      value={color}
       onChange={e =>
-    props.onColorChange(e.value)
+        onColorChange(e.value)
       }
       options={withDefault("all",
-    props.colors.map(value => ({
+        colors.map(value => ({
       label: value, value: value
     })))}
 
