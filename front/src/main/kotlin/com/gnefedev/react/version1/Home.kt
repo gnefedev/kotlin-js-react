@@ -18,12 +18,13 @@ import kotlinx.serialization.serializer
 import react.*
 import react.dom.div
 import react.dom.span
+import react.router.dom.RouteResultProps
 import kotlin.browser.window
 
 class Home(
-  props: LocationProps
+  props: RouteResultProps<*>
 ) : RComponent
-<LocationProps, State>
+<RouteResultProps<*>, State>
 (props) {
   init {
     state = State(
@@ -51,15 +52,11 @@ class Home(
           brands = state.brands,
           brand = state.brand,
           onBrandChange = {
-  navigateToChanged(brand = it)
-          },
-
+navigateToChanged(brand = it) },
           colors = state.colors,
           color = state.color,
           onColorChange = {
-  navigateToChanged(color = it)
-          }
-
+navigateToChanged(color = it) }
         )
       }
       content {
@@ -76,28 +73,19 @@ class Home(
     color: String? = state.color
   ) {
     props.history.push(
-"?brand=" + (brand ?: "")
-+ "&color=" + (color ?: ""))
+"?brand=${brand.orEmpty()}"
++ "&color=${color.orEmpty()}")
+    updateState {
+      this.brand = brand
+      this.color = color
+    }
+    launch {
+      loadCars()
+    }
   }
 
   override fun componentDidMount()
   {
-    props.history.listen {
-      location ->
-      val query = searchAsMap(
-        location.search
-      )
-      updateState {
-        brand = query["brand"]
-        color = query["color"]
-      }
-      launch {
-        loadData(
-          query["brand"],
-          query["color"]
-        )
-      }
-    }
     launch {
       updateState {
         brands = fetchJson(
@@ -110,25 +98,14 @@ class Home(
         )
       }
 
-      loadData(
-        state.brand,
-        state.color
-      )
+      loadCars()
     }
   }
 
-  private suspend fun loadData(
-    brand: String?,
-    color: String?
-  ) {
-    val url = "/api/cars?" +
-"brand=" + (brand ?: "") +
-"&color=" + (color ?: "")
+  private suspend fun loadCars() {
+    val url = "/api/cars?brand=${state.brand.orEmpty()}&color=${state.color.orEmpty()}"
     updateState {
-      cars = fetchJson(
-  url,
-  Car::class.serializer().list
-      )
+      cars = fetchJson(url, Car::class.serializer().list)
       loaded = true
     }
   }
@@ -147,6 +124,15 @@ lateinit var colors: List<String>
 
 
 //render part
+
+
+
+
+
+
+
+
+
 private fun RBuilder.homeHeader(
 brands: List<String>,
 brand: String?,
@@ -182,6 +168,15 @@ onColorChange: (String?) -> Unit
   ) {}
 
 }
+
+infix fun <T : Any>
+  List<SelectItem<T>>.withDefault(
+  label: String
+) = listOf(
+  SelectItem(
+    label = label, value = null
+  )
+) + this
 
 private fun RBuilder.homeContent(
   cars: List<Car>
@@ -248,38 +243,6 @@ fun searchAsMap(search: String?) =
   } else {
     emptyMap()
   }
-
-infix fun <T : Any>
-  List<SelectItem<T>>.withDefault(
-  label: String
-) = listOf(
-  SelectItem(
-    label = label, value = null
-  )
-) + this
-
-external interface LocationProps
-  : RProps {
-  var location: RLocation
-}
-
-external interface RLocation {
-  var search: String?
-}
-
-val RProps.history: RHistory get()
-= this.asDynamic().history
-    .unsafeCast<RHistory>()
-
-external interface RHistory {
-  fun push(
-    path: String,
-    state: Any? = definedExternally
-  )
-  fun listen(
-    listener: (RLocation) -> Unit
-  )
-}
 
 private val serializer: JSON
   = JSON()

@@ -22,7 +22,7 @@ import react.RState
 import react.dom.div
 import react.dom.span
 
-class Home(props: LocationProps<Query>) : RComponent<LocationProps<Query>, State>(props) {
+class Home(props: ContextRouter<Query>) : RComponent<ContextRouter<Query>, State>(props) {
   init {
     state = State(
       color = props.location.query.color,
@@ -153,7 +153,7 @@ private fun RBuilder.layout(
 }
 
 //infrastructure
-external interface LocationProps<T> : RProps {
+external interface ContextRouter<T> : RProps {
   var location: RLocation<T>
 }
 
@@ -161,7 +161,7 @@ external interface RLocation<T> {
   var search: String?
 }
 
-val <T> LocationProps<T>.history: RHistory<T> get() = this.asDynamic().history.unsafeCast<RHistory<T>>()
+val <T> ContextRouter<T>.history: RHistory<T> get() = this.asDynamic().history.unsafeCast<RHistory<T>>()
 
 external interface RHistory<T> {
   fun push(path: String, state: Any? = definedExternally)

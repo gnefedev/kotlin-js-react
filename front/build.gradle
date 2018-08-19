@@ -24,6 +24,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlinVersion"
     compile "org.jetbrains:kotlin-react:$kotlinReactVersion"
     compile "org.jetbrains:kotlin-react-dom:$kotlinReactVersion"
+    compile "org.jetbrains:kotlin-react-router-dom:$kotlinReactRouterVersion"
     compile "org.jetbrains.kotlinx:kotlinx-coroutines-core-js:$kotlinCoroutinesVersion"
 }
 

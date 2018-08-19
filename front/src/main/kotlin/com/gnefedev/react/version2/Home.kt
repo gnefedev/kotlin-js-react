@@ -23,9 +23,9 @@ import react.dom.div
 import react.dom.span
 
 class Home(
-  props: LocationProps<Query>
+  props: ContextRouter<Query>
 ) : RComponent
-<LocationProps<Query>, State>
+<ContextRouter<Query>, State>
 (props) {
   init {
     state = State(
@@ -187,7 +187,7 @@ private fun RBuilder.content(children: RBuilder.() -> Unit) {
 }
 
 //infrastructure
-external interface LocationProps<T> : RProps {
+external interface ContextRouter<T> : RProps {
   var location: RLocation<T>
 }
 
@@ -195,7 +195,7 @@ external interface RLocation<T> {
   var search: String?
 }
 
-val <T> LocationProps<T>.history: RHistory<T> get() =
+val <T> ContextRouter<T>.history: RHistory<T> get() =
   this.asDynamic().history.unsafeCast<RHistory<T>>()
 
 external interface RHistory<T> {

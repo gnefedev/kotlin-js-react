@@ -1,5 +1,6 @@
 package com.gnefedev.react
 
+import kotlinext.js.Object
 import kotlinext.js.clone
 import kotlinx.coroutines.experimental.await
 import kotlinx.serialization.KSerializer
@@ -27,3 +28,8 @@ class RProperty<T>(
 infix fun <T> T.onChange(
   onChange: (T) -> Unit
 ): RProperty<T> = RProperty(this, onChange)
+
+
+fun jsObjectAsMap(`object`: dynamic): Map<String, Any?> = Object.keys(`object`.unsafeCast<Any>())
+  .map { it to `object`[it] }
+  .toMap()

@@ -5,8 +5,12 @@ import com.gnefedev.react.bridge.SelectItem
 import com.gnefedev.react.bridge.column
 import com.gnefedev.react.bridge.datatable
 import com.gnefedev.react.bridge.dropdown
+import com.gnefedev.react.jsObjectAsMap
+import com.gnefedev.react.version1a.Wrapper.WrapperProps
+import com.gnefedev.react.version1a.Wrapper.WrapperState
 import kotlinext.js.clone
 import kotlinext.js.js
+import kotlinext.js.jsObject
 import kotlinx.coroutines.experimental.await
 import kotlinx.coroutines.experimental.launch
 import kotlinx.html.style
@@ -18,14 +22,89 @@ import kotlinx.serialization.serializer
 import react.*
 import react.dom.div
 import react.dom.span
+import react.router.dom.RouteResultProps
 import kotlin.browser.window
+import kotlin.reflect.KClass
+
+fun RBuilder.renderHome(props: RouteResultProps<*>) = wrap(Home::class, {
+  println("fetching")
+  println(jsObjectAsMap(props))
+  println(jsObjectAsMap(props.location))
+  attrs.brands = fetchJson(
+    "/api/brands",
+    StringSerializer.list
+  )
+  attrs.colors = fetchJson(
+    "/api/colors",
+    StringSerializer.list
+  )
+  attrs.cars = fetchCars(null, null)
+})
+
+fun <P: RProps, C: RComponent<P, *>> RBuilder.wrap(component: KClass<C>, loader: suspend RElementBuilder<P>.() -> Unit): ReactElement? =
+  child(Wrapper::class) {
+    attrs.loader = {
+      buildElement {
+        val props = jsObject<P> {}
+        val children = with(RElementBuilder(props)) {
+          loader()
+          childList
+        }
+        child(component.js, props, children)
+      }!!
+    }
+  }
+
+class Wrapper2: RComponent<Wrapper2Props, RState>() {
+  override fun RBuilder.render() {
+    child(props.child(this, props.location))
+  }
+
+  override fun componentDidMount() {
+    props.history.listen {
+
+    }
+  }
+}
+
+external interface Wrapper2Props: LocationProps {
+  var child: (RBuilder, RLocation) -> ReactElement
+}
+
+class Wrapper: RComponent<WrapperProps, WrapperState>() {
+  override fun RBuilder.render() {
+    if (state.loaded) {
+      child(state.child)
+    }
+  }
+
+  override fun componentDidMount() {
+    launch {
+      updateState {
+        child = props.loader()
+        loaded = true
+      }
+    }
+  }
+
+  class WrapperState : RState {
+    var loaded: Boolean = false
+    lateinit var child: ReactElement
+  }
+
+  interface WrapperProps: RProps {
+    var loader: suspend () -> ReactElement
+  }
+}
 
 class Home(
-  props: LocationProps
+  props: Props
 ) : RComponent
-<LocationProps, State>
+<Props, State>
 (props) {
   init {
+    println(jsObjectAsMap(props))
+    println(jsObjectAsMap(props.location))
     state = State(
 
       color = searchAsMap(
@@ -121,17 +200,29 @@ class Home(
     brand: String?,
     color: String?
   ) {
-    val url = "/api/cars?" +
-"brand=" + (brand ?: "") +
-"&color=" + (color ?: "")
     updateState {
-      cars = fetchJson(
-  url,
-  Car::class.serializer().list
-      )
+      cars = fetchCars(brand, color)
       loaded = true
     }
   }
+
+}
+
+private suspend fun fetchCars(brand: String?, color: String?): List<Car> {
+  val url = "/api/cars?" +
+    "brand=" + (brand ?: "") +
+    "&color=" + (color ?: "")
+  val cars = fetchJson(
+    url,
+    Car::class.serializer().list
+  )
+  return cars
+}
+
+external interface Props : LocationProps {
+  var cars: List<Car>
+  var brands: List<String>
+  var colors: List<String>
 }
 
 class State(
