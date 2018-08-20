@@ -1,0 +1,1079 @@
+Мысль перевести фронт на какой-либо js фреймворк появилась одновременно с возможностью писать React на Kotlin. И я решил попробовать. Пришлось попотеть над интеграцией с беком, но зато у меня полноценная типизация, безбоязненный рефакторинг, все возможности Kotlin, а главное, общий код для бека на JVM и фронта на Javascript.
+
+Для этой статьи я приготовил страницу на Javasript + React и её аналог на Kotlin + React, а дальше постарался избавиться от boilerplate за счет возможностей Kotlin.
+
+Чтобы сравнение было честным, я добавил в Javasript типизацию и это оказалоась не так просто. Если для Kotlin мне понадобились gradle, npm и webpack, то для Javascript мне понадобились npm, webpack, flow и babel с пресетами react, flow, es2015 и stage-2. При этом flow тут как-то сбоку и запускать его надо отдельно и отдельно дружить его с IDE. Чтобы ещё немного приблизится к возможностям Kotlin, можно было попробовать typescript и redux... но я решил остановиться.
+
+И тем не меннее, полученную в Javascript типизацию не так сложно обойти. Кроме того, типизация flow не позволяет использовать одну из возможностей Javascript, но об этом позже.
+
+<img src="https://habrastorage.org/webt/vf/l2/zd/vfl2zddkn1lajynfkia1h1b62_e.jpeg" />
+<cut />
+
+<h2>Version 1. Copy & Paste</h2>
+
+По функционалу страница похожа на большую часть страничек в моем проекте: в header пара фильтров, которые прописываются в query, в content какая-нибудь таблица, содержимое которой зависит от фильтров, а ещё надо что-нибудь подгрузить дополнительно при первой отрисовке.
+
+К сожалению, чтобы всё выглядело ровно так же как и в Javascript, того, что есть в kotlin-react не хватило.
+Во-первых, есть setState, но не inline, поэтому не сочетается с корутинами. Пришлось написать ровно ту же функцию, но inline.
+Во-вторых, пришлось написать обертку над primefaces (это быстро, спасибо утилите ts2kt), заодно сделав их api немного удобнее (generics + пара мелочей).
+В-третьих, пришлось написать обертку для history. Почему-то её нет в стандратной библиотеке.
+<spoiler title="Много кода (обе версии в сравнении) \\Это спойлер, в распечатке придется развернуть">
+<table>
+<tr>
+<th>
+javasript
+</th>
+<th>
+kotlin
+</th>
+</tr>
+<tr>
+<td>
+<source lang="javascript">
+class Home
+  extends React.Component
+    <ContextRouter, State>{
+
+
+
+  state = {
+    loaded: false,
+    color: searchAsMap(
+      this.props.location.search
+    )["color"],
+    brand: searchAsMap(
+      this.props.location.search
+    )["brand"],
+    cars: [],
+    brands: [],
+    colors: []
+  };
+
+
+
+  render() {
+    if (!this.state.loaded)
+      return null;
+    return (
+      <Layout>
+        <Header>
+          <HomeHeader
+    brands={this.state.brands}
+    brand={this.state.brand}
+    onBrandChange={brand =>
+  this.navigateToChanged(
+    brand, this.state.color
+  )}
+    colors={this.state.colors}
+    color={this.state.color}
+    onColorChange={color =>
+  this.navigateToChanged(
+    this.state.brand, color
+    )}
+          />
+        </Header>
+        <Content>
+          <HomeContent
+    cars={this.state.cars}
+          />
+        </Content>
+      </Layout>
+    );
+  }
+
+  navigateToChanged(
+    brand?: string,
+    color?: string
+  ) {
+    this.props.history.push(
+"?brand=" + (brand?brand:"")
++ "&color=" + (color?color:""))
+  }
+
+  async componentDidMount()
+  {
+    this.props.history.listen(
+      location => {
+        let query = searchAsMap(
+          location.search
+        );
+        this.setState({
+          brand: query["brand"],
+          color: query["color"]
+        });
+
+        this.loadData(
+          query["brand"],
+          query["color"]
+        )
+
+      });
+
+    this.setState({
+      brands: await (
+        await fetch('/api/brands')
+      ).json(),
+
+      colors: await (
+        await fetch('/api/colors')
+      ).json()
+
+    });
+
+    await this.loadData(
+      this.state.brand,
+      this.state.color
+    );
+  }
+
+
+  async loadData(
+    brand?: string,
+    color?: string
+  ) {
+    let url = '/api/cars?' +
+'brand=' + (brand?brand:"") +
+"&color=" + (color?color:"");
+    this.setState({
+      cars: await (
+        await fetch(url)
+      ).json(),
+
+      loaded: true
+    });
+  }
+}
+
+type State = {
+  color?: string,
+  brand?: string,
+
+  loaded: boolean,
+  cars: Array<Car>,
+  brands: Array<string>,
+  colors: Array<string>
+};
+
+export default Home;
+
+//render part
+const HomeHeader = (props: {
+brands: Array<string>,
+brand?: string,
+onBrandChange: (string) => void,
+colors: Array<string>,
+color?: string,
+onColorChange: (string) => void
+}) => (
+  <div>
+    Brand:
+    <Dropdown
+      value={props.brand}
+      onChange={e =>
+    props.onBrandChange(e.value)
+      }
+      options={withDefault("all",
+    props.brands.map(value => ({
+      label: value, value: value
+    })))}
+
+    />
+    Color:
+    <Dropdown
+      value={props.color}
+      onChange={e =>
+    props.onColorChange(e.value)
+      }
+      options={withDefault("all",
+    props.colors.map(value => ({
+      label: value, value: value
+    })))}
+
+    />
+  </div>
+);
+
+const HomeContent = (props: {
+   cars: Array<Car>
+}) => (
+  <DataTable value={props.cars}>
+    <Column header="Brand"
+            body={rowData =>
+      rowData["brand"]
+            }/>
+    <Column header="Color"
+            body={rowData =>
+      <span
+    style={{
+      color: rowData['color']
+    }}>
+        {rowData['color']}
+      </span>
+  }/>
+    <Column header="Year"
+            body={rowData =>
+      rowData["year"]}
+    />
+  </DataTable>
+);
+
+//Layout
+const Layout = (props: {
+    children: any
+}) => (
+  <div className={"wrapper"}>
+    {props.children}
+  </div>
+);
+
+const Header = (props: {
+    children?: any
+}) => (
+  <div className={"header"}>
+    {props.children}
+  </div>
+);
+
+const Content = (props: {
+   children: any
+}) => (
+  <div className={"content"}>
+    {props.children}
+  </div>
+);
+
+//infrastructure
+function searchAsMap(search) {
+  if (search !== undefined
+    && search.length > 1) {
+    let result = {};
+    search.substr(1)
+      .split("&")
+      .map((pairStr) =>
+        pairStr.split("="))
+      .forEach((pair) => {
+        result[pair[0]] = pair[1]
+      });его
+    return result
+  } else {
+    return {};
+  }
+}
+
+function withDefault(
+  label, options
+) {
+  options.unshift({
+    label: label, value: null
+  });
+  return options;
+}
+</source>
+</td>
+
+
+
+
+
+
+<td>
+<source lang="kotlin">
+class Home(
+  props: LocationProps
+) : RComponent
+<LocationProps, State>
+(props) {
+  init {
+    state = State(
+
+      color = searchAsMap(
+        props.location.search
+      )["color"],
+      brand = searchAsMap(
+        props.location.search
+      )["brand"]
+
+
+
+    )
+  }
+
+  override fun
+    RBuilder.render() {
+    if (!state.loaded) return
+
+
+    layout {
+      header {
+        homeHeader(
+          brands = state.brands,
+          brand = state.brand,
+          onBrandChange = {
+  navigateToChanged(brand = it)
+          },
+
+          colors = state.colors,
+          color = state.color,
+          onColorChange = {
+  navigateToChanged(color = it)
+          }
+
+        )
+      }
+      content {
+        homeContent(
+          cars = state.cars
+        )
+      }
+    }
+
+  }
+
+  private fun navigateToChanged(
+    brand: String? = state.brand,
+    color: String? = state.color
+  ) {
+    props.history.push(
+"?brand=" + (brand ?: "")
++ "&color=" + (color ?: ""))
+  }
+
+  override fun componentDidMount()
+  {
+    props.history.listen {
+      location ->
+      val query = searchAsMap(
+        location.search
+      )
+      updateState {
+        brand = query["brand"]
+        color = query["color"]
+      }
+      launch {
+        loadData(
+          query["brand"],
+          query["color"]
+        )
+      }
+    }
+    launch {
+      updateState {
+        brands = fetchJson(
+          "/api/brands",
+          StringSerializer.list
+        )
+        colors = fetchJson(
+          "/api/colors",
+          StringSerializer.list
+        )
+      }
+
+      loadData(
+        state.brand,
+        state.color
+      )
+    }
+  }
+
+  private suspend fun loadData(
+    brand: String?,
+    color: String?
+  ) {
+    val url = "/api/cars?" +
+"brand=" + (brand ?: "") +
+"&color=" + (color ?: "")
+    updateState {
+      cars = fetchJson(
+  url,
+  Car::class.serializer().list
+      )
+      loaded = true
+    }
+  }
+}
+
+class State(
+  var color: String?,
+  var brand: String?
+) : RState {
+var loaded: Boolean = false
+lateinit var cars: List<Car>
+lateinit var brands: List<String>
+lateinit var colors: List<String>
+}
+
+
+
+//render part
+private fun RBuilder.homeHeader(
+brands: List<String>,
+brand: String?,
+onBrandChange: (String?) -> Unit,
+colors: List<String>,
+color: String?,
+onColorChange: (String?) -> Unit
+) {
+
+  +"Brand:"
+  dropdown(
+    value = brand,
+    onChange = onBrandChange,
+
+
+    options = brands.map {
+      SelectItem(
+        label = it, value = it
+      )
+    } withDefault "all"
+  ) {}
+  +"Color:"
+  dropdown(
+    value = color,
+    onChange = onColorChange,
+
+
+    options = colors.map {
+      SelectItem(
+        label = it, value = it
+      )
+    } withDefault "all"
+  ) {}
+
+}
+
+private fun RBuilder.homeContent(
+  cars: List<Car>
+) {
+  datatable(cars) {
+    column(header = "Brand") {
+
+      +it.brand
+    }
+    column(header = "Color") {
+
+      span {
+        attrs.style = js {
+          color = it.color
+        }
+        +it.color
+      }
+    }
+    column(header = "Year") {
+
+      +"${it.year}"
+    }
+  }
+}
+
+//Layout
+private fun RBuilder.layout(
+  children: RBuilder.() -> Unit
+) {
+  div(classes = "wrapper") {
+    children()
+  }
+}
+
+private fun RBuilder.header(
+  children: RBuilder.() -> Unit
+) {
+  div(classes = "header") {
+    children()
+  }
+}
+
+private fun RBuilder.content(
+  children: RBuilder.() -> Unit
+) {
+  div(classes = "content") {
+    children()
+  }
+}
+
+//infrastructure
+fun searchAsMap(search: String?) =
+  if (search != null
+    && search.length > 1) {
+
+    search.substring(1)
+      .split("&")
+      .map { it.split("=") }
+
+      .map { it[0] to it[1] }
+      .toMap()
+
+
+  } else {
+    emptyMap()
+  }
+
+infix fun <T : Any>
+  List<SelectItem<T>>.withDefault(
+  label: String
+) = listOf(
+  SelectItem(
+    label = label, value = null
+  )
+) + this
+
+external interface LocationProps
+  : RProps {
+  var location: RLocation
+}
+
+external interface RLocation {
+  var search: String?
+}
+
+val RProps.history: RHistory get()
+= this.asDynamic().history
+    .unsafeCast<RHistory>()
+
+external interface RHistory {
+  fun push(
+    path: String,
+    state: Any? = definedExternally
+  )
+  fun listen(
+    listener: (RLocation) -> Unit
+  )
+}
+
+private val serializer: JSON
+  = JSON()
+
+suspend fun <T> fetchJson(
+  url: String,
+  kSerializer: KSerializer<T>
+): T {
+  val json = window.fetch(url)
+    .await().text().await()
+  return serializer.parse(
+    kSerializer,
+    json
+  )
+}
+
+inline fun <S : RState>
+  Component<*, S>.updateState(
+  action: S.() -> Unit
+) {
+  setState(
+    clone(state).apply(action)
+  )
+}
+</source>
+</td>
+</tr>
+</table>
+</spoiler>
+
+Если смотреть код выше, выглядит всё почти так же, за исключением фигурных скобок и подобного. Немного непривычно то, что закрывающий тег выродился до }. Но есть и различия:
+
+<h4>Дефолтные значения параметров</h4>
+Я понастаящему оценил эту возможность Kotlin, когда стал писать на нем фронт. При использовании их можно писать в любом порядке, в любом количестве, при этом любая ошибка будет отловлена на компиляции. В качестве дефолтного значения может использоваться производная другого параметра или поля объекта.
+<spoiler title="Пример из моего проекта">
+<source lang="kotlin">
+fun <T> RBuilder.dropdown(
+    value: T,
+    onChange: (T) -> Unit,
+    options: List<SelectItem<T>>,
+    className: String? = null,
+    filter: Boolean = true,
+    placeholder: String? = null,
+    width: String? = null,
+    enabled: Boolean = true,
+    handler: RElementBuilder<DropdownProps>.() -> Unit
+) {...}
+
+dropdown(
+    options = monthsItems,
+    value = props.date.value?.getMonth(),
+    onChange = {...},
+    filter = false,
+    placeholder = "Месяц"
+) {}
+
+dropdown(
+    options = levelOptions,
+    value = pretendTo,
+    onChange = {...},
+    enabled = notParticipate,
+    width = "200px"
+) {}
+</source>
+</spoiler>
+
+Я нашёл подобное и на Javascript:
+<source lang="javascript">
+  navigateToChanged({brand = this.state.brand, color = this.state.color}) {...}
+
+  this.navigateToChanged({color})
+</source>
+Но это не сочетается с типизацией! Я так и не нашёл адекватного варианта для этого случая.
+
+Для stateless компонентов есть возможность сочетания:
+<source lang="javascript">
+//с дефотными значениями
+const HomeContent = ({ cars = [] }) => (<DataTable value={cars}>...</DataTable>)
+//с типизацией
+const HomeContent = (props: { cars: Array<Car> }) => (<DataTable value={props.cars}>...</DataTable>)
+//с дефотными значениями и типизацией
+const HomeContent = (props: HomeContentProps) => (<DataTable value={props.cars}>...</DataTable>)
+
+type HomeContentProps = { cars: Array<Car> }
+
+HomeContent.defaultProps = { cars: [] };
+</source>
+Сочетание выглядит громоздко: тип надо объявлять отдельно, дефотные значения тоже, да ещё и обязательно ниже самой функции, что может быть вообще за пределами экрана при чтении. Кроме того, типизация заставила ввести props, который теперь нужно указывать при каждом обращении (props.cars вместо cars).
+
+<h4>lateinit</h4>
+Flow справедливо требует полностью заполнять state в конструкторе. Поэтому мы должны проинициализировать даже те поля, которые должны подгрузить с бека. Неудобно. А если это не коллекция, а сложный объект с обязательными полями? Делать nullable? На этот случай в Kotlin есть специальное ключевое слово lateinit. Мы не обязаны инициализировать поле сразу, но если обратиться до первой записи в него, то мы получим специальную ошибку.
+
+<h4>Корутины</h4>
+Корутины включают в себя функционал async/await, но с более строгой компиляцией: нельзя вызывать асинхронный код вне специальных блоков. При этом эти блоки можно втавлять посередине метода, а не только объявлять в сигнатуре функции. Кроме того, можно делать интересные вещи вроде параллельного похода в бек:
+<source lang="kotlin">
+suspend fun parallel(vararg tasks: suspend () -> Unit) {
+    tasks.map {
+        async { it.invoke() }
+    }.forEach { it.await() }
+}
+
+override fun componentDidMount() {
+    launch {
+        updateState {
+            parallel({
+                halls = hallExchanger.all()
+            }, {
+                instructors = instructorExchanger.active()
+            }, {
+                groups = fetchGroups()
+            })
+            loaded = groupExchanger.active(hallId)
+        }
+    }
+}
+</source>
+
+<h4>Оборачивание в div</h4>
+React обязует каждый компонент возвращать только один корневой элемент. Так как stateless компоненты в Javascript всё теже компоненты, то в них приходится всё оборачивать в div. В Kotlin в этих случаях используются обычные функции, так что элементы просто вставляется туда, откуда вызывали и в большинстве случаев такого ограничения нет.
+
+<h4>json в kotlin</h4>
+Можно любой Javascript объект кастить к Kotlin классу при помощи unsafeCast<RequstedClass>(). Но в этом случае мы теряем проверку типа и защиту от nulls. Поэтому приходится явно конвертить json в kotlin объект через сериализатор. Зато мы можем использовать одну и ту же модель и в javascript и в java и единообразно сериализовать/десериализовать в json. Но об этом будет в другой статье.
+
+
+<h2>Version 2. Typed query</h2>
+Итак, попробуем сделать что-нибудь, что невозможно сделать в Javascript.
+Мне не нравится props.location.search. Это просто строка. Да, мы довольно легко преобразуем её в map, но IDE нам не будет подсказвать, что есть в этой мапе. Это при том что мы точно знаем, что к нам может прийти по query. Так что расширим api React новым объектом.
+
+Всё, что нам надо сделать, это добавить generic к LocationProps и RLocation и расширение, которое будет возравщать наш типизированный объект.
+
+<source lang="kotlin">
+external interface LocationProps<T> : RProps {
+  var location: RLocation<T>
+}
+
+external interface RLocation<T> {
+  var search: String?
+}
+
+val <T> RLocation<T>.query: T
+  get() {
+    val result = js("{}")
+    searchAsMap(search).forEach { (key, value) -> result[key] = value }
+    return result.unsafeCast<T>()
+  }
+</source>
+
+<table>
+<tr>
+<th>До</th>
+<th>После</th>
+</tr>
+<tr>
+<td>
+<source lang="kotlin">
+  init {
+    state = State(
+      color = searchAsMap(
+        props.location.search
+      )["color"],
+      brand = searchAsMap(
+        props.location.search
+      )["brand"]
+    )
+  }
+</source>
+</td>
+<td>
+<source lang="kotlin">
+  init {
+    state = State(
+      color = props.location
+        .query.color,
+
+      brand = props.location
+        .query.brand
+
+    )
+  }
+...
+  interface Query {
+    var color: String?
+    var brand: String?
+  }
+}
+</source>
+</td>
+</tr>
+</table>
+
+Можно пойти дальше и ввести дополнительный объект QueryTyped. Это нужно если в Query понадобится что-то кроме строк. QueryTyped будем получать из Query по дороге преобразуя строки и добавляя дефолтные значения. Такой объект уже можно и в state положить не разделяя на запчасти.
+
+<spoiler title="Вот так выглядел бы код, если color был бы enum">
+<source lang="kotlin">
+class Home(props: LocationProps<Query>) : RComponent<LocationProps<Query>, State>(props) {
+  init {
+    state = State(
+      query = props.location.query.typed()
+    )
+  }
+...
+  override fun componentDidMount() {
+    props.history.listen { location ->
+      updateState {
+        query = location.query.typed()
+      }
+      launch {
+        loadData(location.query.typed())
+      }
+    }
+...
+  class State(
+    var query: QueryTyped
+  ) : RState {
+    var loaded: Boolean = false
+    lateinit var cars: List<Car>
+    lateinit var brands: List<String>
+    lateinit var colors: List<String>
+  }
+
+  interface Query {
+    var color: String?
+    var brand: String?
+  }
+
+  private fun Query.typed() = QueryTyped(
+    color?.let { Color.valueOf(it) },
+    brand
+  )
+
+  data class QueryTyped(
+    var color: Color?,
+    var brand: String?
+  )
+}
+
+enum class Color {
+  Orange, Black, Blue, White, Green, Brown, Red, Silver, Yellow
+}
+</source>
+</spoiler>
+
+<h2>Version 3. Layout</h2>
+Как я уже говорил, в моем проекте header для каждой странички свой, по-умолчанию пустой. Каждый раз писать ```layout { header {...} content {...} }``` а уж тем более ```layout { header {} content {...} }``` не хочется.
+
+Насколько я понял, это можно сделать через redux, подписав header на события и наоброт. По мне, это слишком сложное решение для этой задачи. Поэтому, мы решим проблему через наследование: объявим родителя, который всё сделает за нас.
+<source lang="kotlin">
+abstract class LayoutComponent<P : RProps, S : RState> : RComponent<P, S> {
+  constructor() : super()
+  constructor(props: P) : super(props)
+
+  final override fun RBuilder.render() {
+    div(classes = "wrapper") {
+      div(classes = "header") {
+        renderHeader()
+      }
+      div(classes = "content") {
+        renderContent()
+      }
+    }
+  }
+
+  open fun RBuilder.renderHeader() { }
+
+  abstract fun RBuilder.renderContent()
+}
+</source>
+
+<table>
+<tr>
+<th>До</th>
+<th>После</th>
+</tr>
+<tr>
+<td>
+<source lang="kotlin">
+...
+  override fun RBuilder.render() {
+    if (!state.loaded) return
+    layout {
+      header {
+        homeHeader(...)
+      }
+      content {
+        homeContent(...)
+      }
+    }
+  }
+...
+</source>
+</td>
+<td>
+<source lang="kotlin">
+...
+  override fun RBuilder
+    .renderHeader() {
+    if (!state.loaded) return
+    homeHeader(...)
+  }
+
+  override fun RBuilder
+    .renderContent() {
+    if (!state.loaded) return
+    homeContent(...)
+  }
+...
+</source>
+</td>
+</tr>
+</table>
+
+<h2>Version 4. Value + callback</h2>
+Практически везде value и callback ходят парами. Более того, часто выдается warning, если был передан только value или callback. Если мы введем отдельный тип, который будет связывать эту пару то мы получим:
+<ul>
+<li>Один параметр вместо двух. Так, это однажды позволило мне заменить 9 параметров на 5</li>
+<li>Связь по типу между value и callback</li>
+<li>Учитывание nullability. При этом мы можем превратить notNullable в nullable, указав дефолтное значение</li>
+</ul>
+<source lang="kotlin">
+class RProperty<T>(
+    val value: T,
+    val onChange: (T) -> Unit
+)
+
+infix fun <T> T.onChange(onChange: (T) -> Unit): RProperty<T> =
+    RProperty(this, onChange)
+
+infix fun <T : Any> RProperty<T>.withDefault(
+    defaultValue: () -> T
+): RProperty<T?> = RProperty<T?>(value) {
+    onChange(it ?: defaultValue())
+}
+
+val notNullable: RProperty<Int> = 0 onChange { println(it) }
+val nullable: RProperty<Int?> = notNullable withDefault { 42 }
+</source>
+
+<table>
+<tr>
+<th>До</th>
+<th>После</th>
+</tr>
+<tr>
+<td>
+<source lang="kotlin">
+...
+    homeHeader(
+      brands = state.brands,
+      brand = state.brand,
+      onBrandChange = {
+  navigateToChanged(brand = it)
+      }, ...
+...
+private fun RBuilder.homeHeader(
+brands: List<String>,
+brand: String?,
+onBrandChange: (String?) -> Unit,
+...
+) {
+  +"Brand:"
+  dropdown(
+    value = brand,
+    onChange = onBrandChange,
+    options = ...
+}
+</source>
+</td>
+<td>
+<source lang="kotlin">
+...
+    homeHeader(
+      brands = state.brands,
+      brand = state.brand onChange {
+  navigateToChanged(brand = it)
+      }, ...
+
+...
+private fun RBuilder.homeHeader(
+  brands: List<String>,
+  brand: RProperty<String?>,
+
+  ...
+) {
+  +"Brand:"
+  dropdown(
+    selected = brand,
+
+    options = ...
+}
+</source>
+</td>
+</tr>
+</table>
+
+<h2>Version 5. updateStateAndLoadData</h2>
+В моем проекте зачастую страница рисует какю-нибудь таблицу и при изменении каких-либо параметров надо перезапрашивать данные. Если сейчас посмотреть на componentDidMount, то там полно кода, который хотелось бы выбросить (а заодно с десятка подобных страниц). Для этого немного переделаем loadData, введем интерфейс LoadData и напишем extension updateStateAndLoadData. В итоге кода станет раза в два меньше.
+
+<source lang="kotlin">
+interface LoadData<S : RState> {
+  suspend fun S.loadData()
+}
+
+fun <C, S : RState> C.updateStateAndLoadData(
+  action: suspend S.() -> Unit
+) where C : react.Component<*, S>, C : LoadData<S> {
+  launch {
+    val newState = clone(state)
+    action(newState)
+    newState.loadData()
+    setState(newState)
+  }
+}
+</source>
+
+<table>
+<tr>
+<th>До</th>
+<th>После</th>
+</tr>
+<tr>
+<td>
+<source lang="kotlin">
+  override fun componentDidMount()
+  {
+    props.history.listen {
+      location ->
+      updateState {
+    brand = location.query.brand
+    color = location.query.color
+      }
+      launch {
+        loadData(
+          location.query.brand,
+          location.query.color
+        )
+      }
+    }
+    launch {
+      updateState {
+        brands = fetchJson(
+          "/api/brands",
+          StringSerializer.list
+        )
+        colors = fetchJson(
+          "/api/colors",
+          StringSerializer.list
+        )
+      }
+
+      loadData(
+        state.brand,
+        state.color
+      )
+    }
+  }
+
+  private suspend fun loadData(
+    brand: String?,
+    color: String?
+  ) {
+    val url = "/api/cars" +
+      "?brand=" + (brand ?: "") +
+      "&color=" + (color ?: "")
+    updateState {
+      cars = fetchJson(
+  url,
+  Car::class.serializer().list
+      )
+      loaded = true
+    }
+  }
+</source>
+</td>
+<td>
+<source lang="kotlin">
+  override fun componentDidMount()
+  {
+    props.history.listen {
+      location ->
+      updateStateAndLoadData {
+    brand = location.query.brand
+    color = location.query.color
+      }
+
+
+
+
+
+
+    }
+
+    updateStateAndLoadData {
+      brands = fetchJson(
+        "/api/brands",
+        StringSerializer.list
+      )
+      colors = fetchJson(
+        "/api/colors",
+        StringSerializer.list
+      )
+    }
+
+
+
+
+
+
+  }
+
+  override suspend fun State
+    .loadData() {
+
+
+    val url = "/api/cars" +
+      "?brand=" + (brand ?: "") +
+      "&color=" + (color ?: "")
+
+    cars = fetchJson(
+      url,
+      Car::class.serializer().list
+    )
+    loaded = true
+
+  }
+</source>
+</td>
+</tr>
+</table>
+
+<h2>Заключение</h2>
+Ввязываться в новую технологию рисковано. Мало гайдов, на stack overflow ничего нет, не хватает некоторых базовых вещей. Но в случае с Kotlin мои затраты окупились.
+
+Пока я готовил эту стратью я узнал кучу новых вещей о современном Javascript: flow, babel, async/await, шаблоны jsx. Интересно, насколько быстро эти знания устареют? И всё это не нужно, если использовать Kotlin. При этом знать о React нужно совсем немного, потому что большая часть проблем легко решается при помощи языка.
+
+А что Вы думаете о замене всего этого зоопарка одним языком с большим набором плюшек впридачу?
+
+Для заинтересовавшихся <a href="https://github.com/gnefedev/kotlin-js-react">исходники</a>.
+
+В планах написать статьи об интеграции с JVM и об dsl формирующем одновременно react-dom и обычный html.

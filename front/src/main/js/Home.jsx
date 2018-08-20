@@ -42,15 +42,11 @@ class Home
     brands={this.state.brands}
     brand={this.state.brand}
     onBrandChange={brand =>
-  this.navigateToChanged(
-    brand, this.state.color
-  )}
+this.navigateToChanged({brand})}
     colors={this.state.colors}
     color={this.state.color}
     onColorChange={color =>
-  this.navigateToChanged(
-    this.state.brand, color
-    )}
+this.navigateToChanged({color})}
           />
         </Header>
         <Content>
@@ -62,34 +58,24 @@ class Home
     );
   }
 
-  navigateToChanged(
-    brand?: string,
-    color?: string
-  ) {
+  navigateToChanged({
+    brand = this.state.brand,
+    color = this.state.color
+  }: Object) {
     this.props.history.push(
 "?brand=" + (brand?brand:"")
-+ "&color=" + (color?color:""))
++ "&color=" + (color?color:""));
+    this.setState({
+      brand,
+      color
+    });
+
+    this.loadCars()
+
   }
 
   async componentDidMount()
   {
-    this.props.history.listen(
-      location => {
-        let query = searchAsMap(
-          location.search
-        );
-        this.setState({
-          brand: query["brand"],
-          color: query["color"]
-        });
-
-        this.loadData(
-          query["brand"],
-          query["color"]
-        )
-
-      });
-
     this.setState({
       brands: await (
         await fetch('/api/brands')
@@ -101,25 +87,14 @@ class Home
 
     });
 
-    await this.loadData(
-      this.state.brand,
-      this.state.color
-    );
+    await this.loadCars();
   }
 
 
-  async loadData(
-    brand?: string,
-    color?: string
-  ) {
-    let url = '/api/cars?' +
-'brand=' + (brand?brand:"") +
-"&color=" + (color?color:"");
+  async loadCars() {
+    let url = '/api/cars?brand=' + (this.state.brand?this.state.brand:"") + "&color=" + (this.state.color?this.state.color:"");
     this.setState({
-      cars: await (
-        await fetch(url)
-      ).json(),
-
+      cars: await (await fetch(url)).json(),
       loaded: true
     });
   }
@@ -138,41 +113,59 @@ type State = {
 export default Home;
 
 //render part
-const HomeHeader = (props: {
+type HomeHeaderProps = {
 brands: Array<string>,
 brand?: string,
 onBrandChange: (string) => void,
 colors: Array<string>,
 color?: string,
 onColorChange: (string) => void
-}) => (
+}
+
+const HomeHeader = ({
+brands,
+brand,
+onBrandChange,
+colors,
+color,
+onColorChange
+}: HomeHeaderProps) => (
   <div>
     Brand:
     <Dropdown
-      value={props.brand}
+      value={brand}
       onChange={e =>
-    props.onBrandChange(e.value)
+        onBrandChange(e.value)
       }
       options={withDefault("all",
-    props.brands.map(value => ({
+        brands.map(value => ({
       label: value, value: value
     })))}
 
     />
     Color:
     <Dropdown
-      value={props.color}
+      value={color}
       onChange={e =>
-    props.onColorChange(e.value)
+        onColorChange(e.value)
       }
       options={withDefault("all",
-    props.colors.map(value => ({
+        colors.map(value => ({
       label: value, value: value
     })))}
 
     />
   </div>
 );
+
+function withDefault(
+  label, options
+) {
+  options.unshift({
+    label: label, value: null
+  });
+  return options;
+}
 
 const HomeContent = (props: {
    cars: Array<Car>
@@ -239,13 +232,4 @@ function searchAsMap(search) {
   } else {
     return {};
   }
-}
-
-function withDefault(
-  label, options
-) {
-  options.unshift({
-    label: label, value: null
-  });
-  return options;
 }

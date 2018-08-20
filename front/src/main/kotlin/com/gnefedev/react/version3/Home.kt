@@ -24,9 +24,9 @@ import react.dom.div
 import react.dom.span
 
 class Home(
-  props: LocationProps<Query>
+  props: ContextRouter<Query>
 ) : LayoutComponent
-<LocationProps<Query>, State>
+<ContextRouter<Query>, State>
 (props) {
   init {
     state = State(
@@ -200,7 +200,7 @@ abstract class LayoutComponent<P : RProps, S : RState> : RComponent<P, S> {
 }
 
 //infrastructure
-external interface LocationProps<T> : RProps {
+external interface ContextRouter<T> : RProps {
   var location: RLocation<T>
 }
 
@@ -208,7 +208,7 @@ external interface RLocation<T> {
   var search: String?
 }
 
-val <T> LocationProps<T>.history: RHistory<T> get() = this.asDynamic().history.unsafeCast<RHistory<T>>()
+val <T> ContextRouter<T>.history: RHistory<T> get() = this.asDynamic().history.unsafeCast<RHistory<T>>()
 
 external interface RHistory<T> {
   fun push(path: String, state: Any? = definedExternally)
