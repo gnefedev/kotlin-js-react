@@ -63,8 +63,8 @@ this.navigateToChanged({color})}
     color = this.state.color
   }: Object) {
     this.props.history.push(
-"?brand=" + (brand?brand:"")
-+ "&color=" + (color?color:""));
+`?brand=${brand || ""}`
++ `&color=${color || ""}`);
     this.setState({
       brand,
       color
@@ -92,7 +92,7 @@ this.navigateToChanged({color})}
 
 
   async loadCars() {
-    let url = '/api/cars?brand=' + (this.state.brand?this.state.brand:"") + "&color=" + (this.state.color?this.state.color:"");
+    let url = `/api/cars?brand=${this.state.brand || ""}&color=${this.state.color || ""}`;
     this.setState({
       cars: await (await fetch(url)).json(),
       loaded: true
