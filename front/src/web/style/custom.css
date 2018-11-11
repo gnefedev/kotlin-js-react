@@ -4,11 +4,11 @@
 
 .header {
     background: lightgray;
-    padding: 50px;
+    padding: 20px 50px;
 }
 
 .content {
-    padding: 50px;
+    padding: 20px 50px;
     height: 100%;
     background: lightslategrey;
 }
