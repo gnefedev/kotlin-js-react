@@ -73,6 +73,18 @@ task devServer(type: NpmTask, dependsOn: [npmInstall]) {
     args = ["run", "kotlinServer"]
 }
 
+task bundleJs(type: NpmTask, dependsOn: [npmInstall]) {
+    group = 'Build'
+    args = ["run", "bundleJs"]
+    //375kb
+}
+
+task bundleKotlin(type: NpmTask, dependsOn: [npmInstall]) {
+    group = 'Build'
+    args = ["run", "bundleKotlin"]
+    //752kb
+}
+
 task devJavascriptServer(type: NpmTask, dependsOn: [npmInstall]) {
     group = 'Application'
     args = ["run", "devJavasriptServer"]

@@ -3,8 +3,8 @@
     "react": "15.6.1",
     "react-dom": "15.6.1",
     "react-router-dom": "4.2.2",
-    "primereact": "1.4.0",
-    "classnames": "^2.2.5"
+    "font-awesome": "^4.7.0",
+    "primereact": "1.4.0"
   },
   "devDependencies": {
     "webpack-dev-server": "2.8.2",
@@ -12,6 +12,7 @@
     "source-map-loader": "0.2.1",
     "webpack-merge": "4.1.0",
     "webpack": "3.4.1",
+    "classnames": "^2.2.5",
 
 
     "react-router": "^4.3.1",
@@ -29,7 +30,9 @@
     "devJavasriptServer": "webpack-dev-server --open --config webpack.javascript.js",
     "devKotlinServer": "webpack-dev-server --open --config webpack.kotlin.js",
     "gradleBuild": "../gradlew devBuild --continuous --parallel",
-    "kotlinServer": "run-p gradleBuild devKotlinServer"
+    "kotlinServer": "run-p gradleBuild devKotlinServer",
+    "bundleJs": "webpack --config webpack.javascript.js",
+    "bundleKotlin": "webpack --config webpack.kotlin.js"
   },
 
 
